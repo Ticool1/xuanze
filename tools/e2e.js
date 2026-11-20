@@ -446,14 +446,20 @@ async function main() {
     check('后台新增的商品在前台可见', newNames.some((n) => n.includes('中秋月饼礼盒')), newNames.join(' | '));
     await shot('e2e-11-front-new-product.png');
 
-    // 前台新商品图应从 /uploads 正确加载
-    const imgOk = await evaluate(`(() => {
+    // 前台新商品图应能加载：本地存储走 /uploads/，配置 COS 后走 COS 域名
+    const imgInfo = await evaluate(`(() => {
       const el = [...document.querySelectorAll('.product-card')].find(c => c.textContent.includes('中秋月饼礼盒'));
-      if (!el) return false;
+      if (!el) return { has: false, bg: '' };
       const thumb = el.querySelector('.product-thumb');
-      return thumb.style.backgroundImage.includes('/uploads/');
+      return { has: true, bg: thumb.style.backgroundImage || '' };
     })()`);
-    check('商品图片通过 /uploads 加载', imgOk === true);
+    const isCos = imgInfo.bg.includes('myqcloud.com') || /^url\(["']?https?:/i.test(imgInfo.bg);
+    const isLocal = imgInfo.bg.includes('/uploads/');
+    check(
+      '商品图片已存储并可加载（本地或 COS）',
+      imgInfo.has && (isLocal || isCos),
+      isCos ? 'COS 存储' : isLocal ? '本地 /uploads' : '未检测到图片'
+    );
 
     // 图片真实可访问（不是 404 占位）
     const imgUrl = await evaluate(`(() => {
@@ -464,7 +470,13 @@ async function main() {
     })()`);
     if (imgUrl) {
       const abs = new URL(imgUrl, BASE).href;
-      const resp = await fetch(abs);
+      // COS 新对象权限可能有短暂同步延迟，重试几次
+      let resp = null;
+      for (let i = 0; i < 5; i++) {
+        resp = await fetch(abs);
+        if (resp.ok) break;
+        await sleep(2500);
+      }
       check('图片真实可访问且为图片类型', resp.ok && (resp.headers.get('content-type') || '').startsWith('image/'),
         `${resp.status} ${resp.headers.get('content-type')} ${imgUrl}`);
     }
