@@ -145,14 +145,41 @@ public/
   admin.html       后台管理
   assets/style.css 样式
 tools/
-  e2e.js           端到端测试（Headless Chrome，65 项）
+  e2e.js           端到端测试（Headless Chrome，65 项，可指定后台密码）
   verify-qr.js     二维码真实解码验证（jsQR，14 项）
   compare-qr.js    与成熟实现逐位对照
+  deploy.py        SSH 部署（paramiko，密码认证）
 deploy/
   xuanze.service   systemd 服务
   setup.sh         一键部署脚本
 data/              运行时生成（数据库 + 上传图片，已 gitignore）
 ```
+
+---
+
+## 线上部署记录
+
+| 项 | 值 |
+|---|---|
+| 服务器 | `154.8.201.41`（Ubuntu 22.04.5 LTS，2核4G） |
+| 代码目录 | `/opt/xuanze` |
+| Node | v22.23.5（NodeSource） |
+| 进程管理 | systemd `xuanze.service` |
+| 前台 | http://154.8.201.41:3000/ |
+| 后台 | http://154.8.201.41:3000/admin |
+| 日志 | `/var/log/xuanze/app.log`、`error.log` |
+
+常用运维命令：
+
+```bash
+sudo systemctl status xuanze      # 查看状态
+sudo systemctl restart xuanze     # 重启
+sudo journalctl -u xuanze -n 50   # 看日志
+cd /opt/xuanze && git pull && sudo systemctl restart xuanze   # 更新代码
+```
+
+> ⚠️ **服务文件不要加 `ProtectSystem=full` / `PrivateTmp=true`**，在部分 Ubuntu 上会导致
+> `status=226/NAMESPACE` 启动失败。
 
 ---
 
@@ -164,6 +191,9 @@ PORT=3111 node server/app.js
 
 # 端到端（需本机 Chrome/Edge）
 node tools/e2e.js http://127.0.0.1:3111
+
+# 线上环境（后台密码通过第 3 个参数传入）
+node tools/e2e.js http://154.8.201.41:3000 "你的后台密码"
 
 # 二维码真实解码验证（需先下载工具，见下）
 node tools/verify-qr.js http://127.0.0.1:3111

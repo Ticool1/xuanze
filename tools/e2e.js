@@ -10,6 +10,8 @@ const path = require('node:path');
 const os = require('node:os');
 
 const BASE = process.argv[2] || 'http://127.0.0.1:3111';
+// 后台密码：可通过第 3 个参数或环境变量 ADMIN_PASSWORD 指定
+const ADMIN_PWD = process.argv[3] || process.env.ADMIN_PASSWORD || 'admin123';
 const OUT = path.join(__dirname, '..', 'shots');
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -296,7 +298,7 @@ async function main() {
 
     // 登录
     await evaluate(`(() => {
-      document.getElementById('loginPassword').value = 'admin123';
+      document.getElementById('loginPassword').value = ${JSON.stringify(ADMIN_PWD)};
       document.getElementById('loginBtn').click();
     })()`);
     await sleep(1500);
