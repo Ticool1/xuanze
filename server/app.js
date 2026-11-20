@@ -446,7 +446,7 @@ async function handleApi(req, res, url, pathname) {
   if (pathname === '/api/shop' && method === 'GET') {
     return sendJson(res, 200, {
       shopName: process.env.SHOP_NAME || '选择蛋糕店',
-      phone: process.env.SHOP_PHONE || '17310076421'
+      phone: process.env.SHOP_PHONE || '13504418782'
     });
   }
 

@@ -142,7 +142,7 @@ async function main() {
     }))()`);
 
     check('前台显示店铺名', front.shopName.includes('选择蛋糕店'), front.shopName);
-    check('前台显示手机号', front.phone === '17310076421', front.phone);
+    check('前台显示手机号', front.phone === '13504418782', front.phone);
     check('左上角有 LOGO', !!front.logo, 'LOGO 字：' + front.logo);
     check('左侧分类栏有分类', front.cats.length >= 4, front.cats.join(' / '));
     check('右侧展示商品卡片', front.cards > 0, front.cards + ' 个');
