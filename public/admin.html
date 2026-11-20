@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>后台管理 · 选择蛋糕店</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>" />
+</head>
+<body>
+  <!-- ==================== 登录 ==================== -->
+  <div class="login-wrap" id="loginView">
+    <div class="login-card">
+      <div class="login-logo">🎂</div>
+      <div class="login-title">选择蛋糕店 · 后台</div>
+      <div class="login-sub">请输入管理密码</div>
+      <input type="password" id="loginPassword" placeholder="管理密码" autocomplete="current-password" />
+      <button class="btn-primary" id="loginBtn">登录</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+
+  <!-- ==================== 后台主体 ==================== -->
+  <div class="admin hidden" id="adminView">
+    <aside class="admin-side" id="adminSide">
+      <div class="admin-logo"><span class="dot">🎂</span> 选择蛋糕店</div>
+      <nav class="admin-nav">
+        <button class="nav-item active" data-view="products">🧁 商品管理</button>
+        <button class="nav-item" data-view="orders">
+          📋 订单管理
+          <span class="nav-badge hidden" id="navPendingBadge">0</span>
+        </button>
+        <button class="nav-item" data-view="logs">👀 访客日志</button>
+      </nav>
+      <div class="admin-side-bottom">
+        <button class="nav-item" id="logoutBtn" style="color:#8f9aad">🚪 退出登录</button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <!-- 顶部：入口 + 二维码 -->
+      <div class="admin-head">
+        <div class="admin-title" id="viewTitle">
+          商品管理
+          <small id="viewSubtitle">配置分类、商品名称、图片与价格</small>
+        </div>
+        <div class="head-actions">
+          <button class="btn dark" id="openFrontBtn">🌐 打开前台选购页</button>
+          <button class="btn primary" id="qrBtn">▣ 二维码</button>
+        </div>
+      </div>
+
+      <!-- ========== 视图 1：商品管理 ========== -->
+      <div id="viewProducts">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">📁 商品分类</div>
+            <button class="btn small primary" id="addCatBtn">＋ 新增分类</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th style="width:60px">排序</th>
+                  <th>分类名称</th>
+                  <th style="width:100px">商品数</th>
+                  <th style="width:150px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="catTbody">
+                <tr><td colspan="4" class="empty">加载中…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="filters" style="background:#fff;border-radius:14px 14px 0 0;border:1px solid #eef0f4;border-bottom:none;margin-bottom:0;padding:14px 18px">
+          <strong style="font-size:15px;margin-right:6px">🍰 商品列表</strong>
+          <select id="filterCat" style="padding:7px 12px;border:1px solid #e3e5e9;border-radius:9px;font-size:13px;background:#fbfbfc;outline:none">
+            <option value="">全部分类</option>
+          </select>
+          <span style="flex:1"></span>
+          <button class="btn small primary" id="addProdBtn">＋ 新增商品</button>
+        </div>
+
+        <div class="panel" style="border-radius:0 0 14px 14px;border-top:none">
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>商品</th>
+                  <th style="width:110px">分类</th>
+                  <th style="width:100px">价格</th>
+                  <th style="width:80px">排序</th>
+                  <th style="width:90px">状态</th>
+                  <th style="width:150px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="prodTbody">
+                <tr><td colspan="6" class="empty">加载中…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== 视图 2：订单管理 ========== -->
+      <div id="viewOrders" class="hidden">
+        <div class="filters" style="background:#fff;border:1px solid #eef0f4;border-radius:14px;margin-bottom:16px">
+          <button class="filter-tab active" data-status="">全部</button>
+          <button class="filter-tab" data-status="pending">待处理</button>
+          <button class="filter-tab" data-status="done">已完成</button>
+          <button class="filter-tab" data-status="cancelled">已取消</button>
+          <span style="flex:1"></span>
+          <button class="btn small" id="refreshOrdersBtn">↻ 刷新</button>
+        </div>
+        <div class="panel">
+          <div class="table-wrap">
+            <table class="data" style="min-width:1080px">
+              <thead>
+                <tr>
+                  <th style="width:180px">订单号 / 时间</th>
+                  <th style="width:110px">称呼</th>
+                  <th style="width:130px">手机号</th>
+                  <th style="width:90px">交货方式</th>
+                  <th style="width:220px">收货地址</th>
+                  <th style="width:150px">预计时间</th>
+                  <th style="width:110px">金额</th>
+                  <th style="width:100px">状态</th>
+                  <th style="width:150px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="orderTbody">
+                <tr><td colspan="9" class="empty">加载中…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== 视图 3：访客日志 + 收益汇总 ========== -->
+      <div id="viewLogs" class="hidden">
+        <div class="cards" id="statCards"></div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">👀 访客日志 <span class="muted">（谁、什么时间浏览了 / 下单了）</span></div>
+            <div class="head-actions">
+              <button class="btn small" id="refreshLogsBtn">↻ 刷新</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data" style="min-width:980px">
+              <thead>
+                <tr>
+                  <th style="width:170px">时间</th>
+                  <th style="width:150px">访客标识</th>
+                  <th style="width:110px">事件</th>
+                  <th style="width:220px">访问路径 / 说明</th>
+                  <th style="width:130px">IP</th>
+                  <th style="width:200px">设备</th>
+                  <th style="width:150px">该访客累计</th>
+                </tr>
+              </thead>
+              <tbody id="logTbody">
+                <tr><td colspan="7" class="empty">加载中…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== 二维码弹窗 ==================== -->
+  <div class="modal-mask" id="qrModal">
+    <div class="modal">
+      <div class="modal-head">
+        <span>扫码进入前台</span>
+        <button class="modal-close" data-close="qrModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="qr-box">
+          <div class="qr-canvas" id="qrCanvas"></div>
+          <div class="qr-url" id="qrUrl"></div>
+          <div class="qr-tip">
+            用微信或手机相机扫描上方二维码即可进入选购页。<br />
+            每位扫码用户会获得一个唯一访客标识，用于访客日志与信息自动填充。
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+            <button class="btn small" id="qrCopyBtn">复制链接</button>
+            <a class="btn small" id="qrOpenBtn" target="_blank" rel="noopener">新窗口打开</a>
+            <button class="btn small" id="qrDownloadBtn">下载二维码</button>
+          </div>
+          <div class="qr-tip" style="margin-top:2px">
+            如果二维码打开是 127.0.0.1 / localhost，手机扫不到，请用局域网地址或公网域名启动：
+            <code style="background:#f4f5f7;padding:1px 5px;border-radius:4px">PUBLIC_BASE_URL=http://你的IP:3000</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 分类弹窗 ==================== -->
+  <div class="modal-mask" id="catModal">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-head">
+        <span id="catModalTitle">新增分类</span>
+        <button class="modal-close" data-close="catModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="catForm">
+          <input type="hidden" id="catId" />
+          <div class="form-grid" style="grid-template-columns:1fr">
+            <div class="form-item">
+              <label>分类名称 *</label>
+              <input type="text" id="catName" maxlength="20" placeholder="例如：生日蛋糕" />
+            </div>
+            <div class="form-item">
+              <label>排序（越小越靠前）</label>
+              <input type="number" id="catSort" value="0" step="1" />
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" data-close="catModal">取消</button>
+        <button class="btn primary" id="catSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 商品弹窗 ==================== -->
+  <div class="modal-mask" id="prodModal">
+    <div class="modal wide">
+      <div class="modal-head">
+        <span id="prodModalTitle">新增商品</span>
+        <button class="modal-close" data-close="prodModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="prodForm">
+          <input type="hidden" id="prodId" />
+          <div class="form-grid">
+            <div class="form-item">
+              <label>商品名称 *</label>
+              <input type="text" id="prodName" maxlength="40" placeholder="例如：草莓奶油生日蛋糕 6寸" />
+            </div>
+            <div class="form-item">
+              <label>所属分类 *</label>
+              <select id="prodCategory"></select>
+            </div>
+            <div class="form-item">
+              <label>价格（元）*</label>
+              <input type="number" id="prodPrice" min="0" step="0.01" placeholder="例如：128" />
+            </div>
+            <div class="form-item">
+              <label>排序（越小越靠前）</label>
+              <input type="number" id="prodSort" value="0" step="1" />
+            </div>
+            <div class="form-item full">
+              <label>商品图片</label>
+              <div class="image-picker">
+                <div class="image-preview" id="prodImagePreview">未上传</div>
+                <div>
+                  <input type="file" id="prodImageFile" accept="image/*" style="display:none" />
+                  <button type="button" class="btn small" id="prodImagePick">选择图片</button>
+                  <button type="button" class="btn small ghost-danger" id="prodImageClear">清空</button>
+                  <div class="muted" style="margin-top:6px;font-size:11.5px">支持 jpg / png / webp，建议 800×800，8MB 内</div>
+                </div>
+              </div>
+            </div>
+            <div class="form-item full">
+              <label>商品描述（选填）</label>
+              <textarea id="prodDescr" maxlength="100" placeholder="一句话介绍，会显示在商品卡片上"></textarea>
+            </div>
+            <div class="form-item">
+              <label>上架状态</label>
+              <select id="prodStatus">
+                <option value="1">上架（前台可见）</option>
+                <option value="0">下架（前台隐藏）</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" data-close="prodModal">取消</button>
+        <button class="btn primary" id="prodSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 订单详情弹窗 ==================== -->
+  <div class="modal-mask" id="orderModal">
+    <div class="modal">
+      <div class="modal-head">
+        <span>订单详情</span>
+        <button class="modal-close" data-close="orderModal">✕</button>
+      </div>
+      <div class="modal-body" id="orderDetailBody"></div>
+      <div class="modal-foot">
+        <button class="btn" data-close="orderModal">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const $ = (id) => document.getElementById(id);
+      const state = {
+        categories: [],
+        products: [],
+        orders: [],
+        logs: [],
+        stats: null,
+        logFilterStatus: '',
+        filterCatId: '',
+        currentImageData: '',
+        frontUrl: ''
+      };
+
+      // ---------------- 工具 ----------------
+      const toastEl = $('toast');
+      let toastTimer = null;
+      function toast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2000);
+      }
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+      }
+
+      function money(n) {
+        return '¥' + (Math.round(Number(n || 0) * 100) / 100).toFixed(2);
+      }
+
+      function thumb(url, cls = 'thumb-sm') {
+        if (!url) return `<div class="${cls}" style="display:flex;align-items:center;justify-content:center;color:#c3cad6;font-size:11px">无图</div>`;
+        return `<div class="${cls}" style="background-image:url('${esc(url)}')"></div>`;
+      }
+
+      function fmtTime(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return iso;
+        const p = new Intl.DateTimeFormat('zh-CN', {
+          timeZone: 'Asia/Shanghai',
+          hourCycle: 'h23',
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }).formatToParts(d).reduce((acc, x) => (x.type !== 'literal' && (acc[x.type] = x.value), acc), {});
+        return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+      }
+
+      function shortTime(iso) {
+        const t = fmtTime(iso);
+        return t.slice(5, 16); // MM-DD HH:mm
+      }
+
+      function deviceOf(ua) {
+        if (!ua || ua === 'seed') return '—';
+        let os = '未知';
+        if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
+        else if (/Android/i.test(ua)) os = 'Android';
+        else if (/Windows/i.test(ua)) os = 'Windows';
+        else if (/Mac OS X/i.test(ua)) os = 'macOS';
+        let br = '未知浏览器';
+        if (/MicroMessenger/i.test(ua)) br = '微信';
+        else if (/Edg\//i.test(ua)) br = 'Edge';
+        else if (/Chrome\//i.test(ua)) br = 'Chrome';
+        else if (/Safari\//i.test(ua)) br = 'Safari';
+        else if (/Firefox\//i.test(ua)) br = 'Firefox';
+        return `${os} · ${br}`;
+      }
+
+      async function api(path, opts) {
+        const res = await fetch(path, {
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          ...opts
+        });
+        if (res.status === 401) {
+          showLogin();
+          throw new Error('登录已过期，请重新登录');
+        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || '请求失败');
+        return data;
+      }
+
+      function openModal(id) {
+        $(id).classList.add('show');
+      }
+
+      function closeModal(id) {
+        $(id).classList.remove('show');
+      }
+
+      document.querySelectorAll('[data-close]').forEach((btn) => {
+        btn.addEventListener('click', () => closeModal(btn.dataset.close));
+      });
+
+      document.querySelectorAll('.modal-mask').forEach((mask) => {
+        mask.addEventListener('click', (e) => {
+          if (e.target === mask) mask.classList.remove('show');
+        });
+      });
+
+      // ---------------- 登录 ----------------
+      function showLogin() {
+        $('loginView').classList.remove('hidden');
+        $('adminView').classList.add('hidden');
+        setTimeout(() => $('loginPassword').focus(), 60);
+      }
+
+      function showAdmin() {
+        $('loginView').classList.add('hidden');
+        $('adminView').classList.remove('hidden');
+        boot();
+      }
+
+      async function doLogin() {
+        const pwd = $('loginPassword').value;
+        $('loginError').textContent = '';
+        if (!pwd) {
+          $('loginError').textContent = '请输入密码';
+          return;
+        }
+        try {
+          await api('/api/admin/login', { method: 'POST', body: JSON.stringify({ password: pwd }) });
+          $('loginPassword').value = '';
+          showAdmin();
+        } catch (err) {
+          $('loginError').textContent = err.message || '登录失败';
+        }
+      }
+
+      $('loginBtn').addEventListener('click', doLogin);
+      $('loginPassword').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') doLogin();
+      });
+
+      $('logoutBtn').addEventListener('click', async () => {
+        try {
+          await api('/api/admin/logout', { method: 'POST' });
+        } catch (_) { /* ignore */ }
+        showLogin();
+      });
+
+      // ---------------- 导航 ----------------
+      const VIEW_META = {
+        products: ['商品管理', '配置分类、商品名称、图片与价格'],
+        orders: ['订单管理', '查看订单、标记完成或取消'],
+        logs: ['访客日志', '浏览与下单记录、收益汇总']
+      };
+
+      document.querySelectorAll('.nav-item[data-view]').forEach((el) => {
+        el.addEventListener('click', () => {
+          document.querySelectorAll('.nav-item[data-view]').forEach((n) => n.classList.remove('active'));
+          el.classList.add('active');
+          const view = el.dataset.view;
+          ['products', 'orders', 'logs'].forEach((v) => {
+            $('view' + v.charAt(0).toUpperCase() + v.slice(1)).classList.toggle('hidden', v !== view);
+          });
+          const [title, sub] = VIEW_META[view];
+          $('viewTitle').innerHTML = `${title}<small>${sub}</small>`;
+          $('adminSide').classList.remove('open');
+          if (view === 'orders') loadOrders();
+          if (view === 'logs') loadLogs();
+          if (view === 'products') loadProducts();
+        });
+      });
+
+      // ---------------- 前台入口 / 二维码 ----------------
+      $('openFrontBtn').addEventListener('click', () => {
+        window.open(state.frontUrl || '/', '_blank');
+      });
+
+      async function openQr() {
+        let url = state.frontUrl;
+        if (!url) {
+          try {
+            const r = await api('/api/site-url');
+            state.frontUrl = r.base;
+            url = r.base;
+          } catch (_) {
+            url = location.origin;
+          }
+        }
+        const target = url.replace(/\/+$/, '') + '/';
+        $('qrUrl').textContent = target;
+        $('qrOpenBtn').href = target;
+        $('qrCanvas').innerHTML = '<div class="muted">生成中…</div>';
+        try {
+          const svg = await fetch('/api/qrcode?text=' + encodeURIComponent(target)).then((r) => r.text());
+          $('qrCanvas').innerHTML = svg;
+        } catch (err) {
+          $('qrCanvas').innerHTML = `<div class="muted">二维码生成失败：${esc(err.message)}</div>`;
+        }
+        openModal('qrModal');
+      }
+
+      $('qrBtn').addEventListener('click', openQr);
+
+      $('qrCopyBtn').addEventListener('click', async () => {
+        const url = $('qrUrl').textContent;
+        try {
+          await navigator.clipboard.writeText(url);
+          toast('链接已复制');
+        } catch (_) {
+          const ta = document.createElement('textarea');
+          ta.value = url;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          toast('链接已复制');
+        }
+      });
+
+      $('qrDownloadBtn').addEventListener('click', () => {
+        const svg = $('qrCanvas').querySelector('svg');
+        if (!svg) return toast('二维码还没生成好');
+        const data = new XMLSerializer().serializeToString(svg);
+        const blob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '选择蛋糕店-二维码.svg';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+      });
+
+      // ---------------- 分类 ----------------
+      async function loadCategories() {
+        const r = await api('/api/admin/categories');
+        state.categories = r.categories;
+        renderCategories();
+        renderCatOptions();
+      }
+
+      function renderCategories() {
+        const tb = $('catTbody');
+        if (!state.categories.length) {
+          tb.innerHTML = '<tr><td colspan="4" class="empty">还没有分类，点击右上角「新增分类」开始</td></tr>';
+          return;
+        }
+        tb.innerHTML = state.categories
+          .map(
+            (c) => `
+            <tr>
+              <td class="mono">${c.sort}</td>
+              <td><b>${esc(c.name)}</b></td>
+              <td>${c.productCount} 个</td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn small" data-edit-cat="${c.id}">编辑</button>
+                  <button class="btn small danger" data-del-cat="${c.id}">删除</button>
+                </div>
+              </td>
+            </tr>`
+          )
+          .join('');
+      }
+
+      function renderCatOptions() {
+        const sel = $('filterCat');
+        const cur = sel.value;
+        sel.innerHTML =
+          '<option value="">全部分类</option>' +
+          state.categories.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+        if (cur && [...sel.options].some((o) => o.value === cur)) sel.value = cur;
+
+        // 商品弹窗分类下拉：用 dataset.pick 记录期望值，重建后精确还原
+        const psel = $('prodCategory');
+        const want = psel.dataset.pick || '';
+        psel.innerHTML = state.categories
+          .map((c) => `<option value="${c.id}">${esc(c.name)}</option>`)
+          .join('');
+        if (want && [...psel.options].some((o) => o.value === String(want))) {
+          psel.value = String(want);
+        } else if (state.categories.length) {
+          psel.value = String(state.categories[0].id);
+        }
+      }
+
+      $('addCatBtn').addEventListener('click', () => {
+        $('catModalTitle').textContent = '新增分类';
+        $('catId').value = '';
+        $('catName').value = '';
+        $('catSort').value = String(state.categories.length + 1);
+        openModal('catModal');
+        setTimeout(() => $('catName').focus(), 80);
+      });
+
+      $('catSaveBtn').addEventListener('click', async () => {
+        const id = $('catId').value;
+        const name = $('catName').value.trim();
+        const sort = Number($('catSort').value) || 0;
+        if (!name) return toast('请填写分类名称');
+        try {
+          if (id) {
+            await api('/api/admin/categories/' + id, { method: 'PUT', body: JSON.stringify({ name, sort }) });
+            toast('已保存');
+          } else {
+            await api('/api/admin/categories', { method: 'POST', body: JSON.stringify({ name, sort }) });
+            toast('分类已创建');
+          }
+          closeModal('catModal');
+          await loadCategories();
+          await loadProducts();
+        } catch (err) {
+          toast(err.message);
+        }
+      });
+
+      document.addEventListener('click', async (e) => {
+        const editCat = e.target.closest('[data-edit-cat]');
+        if (editCat) {
+          const c = state.categories.find((x) => x.id === Number(editCat.dataset.editCat));
+          if (!c) return;
+          $('catModalTitle').textContent = '编辑分类';
+          $('catId').value = c.id;
+          $('catName').value = c.name;
+          $('catSort').value = c.sort;
+          openModal('catModal');
+          return;
+        }
+
+        const delCat = e.target.closest('[data-del-cat]');
+        if (delCat) {
+          const c = state.categories.find((x) => x.id === Number(delCat.dataset.delCat));
+          if (!c) return;
+          const tip = c.productCount
+            ? `分类「${c.name}」下有 ${c.productCount} 个商品，删除会一并删除这些商品，确定吗？`
+            : `确定删除分类「${c.name}」吗？`;
+          if (!confirm(tip)) return;
+          try {
+            await api('/api/admin/categories/' + c.id, { method: 'DELETE' });
+            toast('已删除');
+            await loadCategories();
+            await loadProducts();
+          } catch (err) {
+            toast(err.message);
+          }
+          return;
+        }
+
+        const editProd = e.target.closest('[data-edit-prod]');
+        if (editProd) {
+          const p = state.products.find((x) => x.id === Number(editProd.dataset.editProd));
+          if (p) openProductModal(p);
+          return;
+        }
+
+        const delProd = e.target.closest('[data-del-prod]');
+        if (delProd) {
+          const p = state.products.find((x) => x.id === Number(delProd.dataset.delProd));
+          if (!p) return;
+          if (!confirm(`确定删除商品「${p.name}」吗？`)) return;
+          try {
+            await api('/api/admin/products/' + p.id, { method: 'DELETE' });
+            toast('已删除');
+            await loadProducts();
+            await loadCategories();
+          } catch (err) {
+            toast(err.message);
+          }
+          return;
+        }
+
+        const toggle = e.target.closest('[data-toggle-prod]');
+        if (toggle) {
+          const p = state.products.find((x) => x.id === Number(toggle.dataset.toggleProd));
+          if (!p) return;
+          try {
+            await api('/api/admin/products/' + p.id, {
+              method: 'PUT',
+              body: JSON.stringify({ status: p.status === 1 ? 0 : 1 })
+            });
+            toast(p.status === 1 ? '已下架' : '已上架');
+            await loadProducts();
+          } catch (err) {
+            toast(err.message);
+          }
+        }
+      });
+
+      // ---------------- 商品 ----------------
+      async function loadProducts() {
+        const r = await api('/api/admin/products');
+        state.products = r.products;
+        renderProducts();
+      }
+
+      function renderProducts() {
+        const tb = $('prodTbody');
+        const filter = $('filterCat').value;
+        const list = filter ? state.products.filter((p) => String(p.category_id) === filter) : state.products;
+
+        if (!list.length) {
+          tb.innerHTML = '<tr><td colspan="6" class="empty">暂无商品，点击「＋ 新增商品」添加</td></tr>';
+          return;
+        }
+
+        tb.innerHTML = list
+          .map(
+            (p) => `
+            <tr>
+              <td>
+                <div class="cell-product">
+                  ${thumb(p.image)}
+                  <div class="meta">
+                    <b>${esc(p.name)}</b>
+                    <span>${esc(p.descr || '—')}</span>
+                  </div>
+                </div>
+              </td>
+              <td>${esc(p.categoryName || '—')}</td>
+              <td><b style="color:#b85252">${money(p.price)}</b></td>
+              <td class="mono">${p.sort}</td>
+              <td>
+                <span class="tag ${p.status === 1 ? 'ok' : 'gray'}">${p.status === 1 ? '上架中' : '已下架'}</span>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn small" data-edit-prod="${p.id}">编辑</button>
+                  <button class="btn small" data-toggle-prod="${p.id}">${p.status === 1 ? '下架' : '上架'}</button>
+                  <button class="btn small danger" data-del-prod="${p.id}">删除</button>
+                </div>
+              </td>
+            </tr>`
+          )
+          .join('');
+      }
+
+      $('filterCat').addEventListener('change', () => {
+        state.filterCatId = $('filterCat').value;
+        renderProducts();
+      });
+
+      function openProductModal(p) {
+        $('prodModalTitle').textContent = p ? '编辑商品' : '新增商品';
+        $('prodId').value = p ? p.id : '';
+        $('prodName').value = p ? p.name : '';
+        const pick = p
+          ? String(p.category_id)
+          : (state.filterCatId || (state.categories[0] ? String(state.categories[0].id) : ''));
+        // 先写入期望值再重建下拉，避免被 renderCatOptions 重置
+        $('prodCategory').dataset.pick = pick;
+        renderCatOptions();
+        $('prodCategory').value = pick;
+        $('prodPrice').value = p ? p.price : '';
+        $('prodSort').value = p ? p.sort : state.products.length;
+        $('prodDescr').value = p ? p.descr : '';
+        $('prodStatus').value = p ? String(p.status) : '1';
+        state.currentImageData = '';
+        setImagePreview(p ? p.image : '');
+        openModal('prodModal');
+        setTimeout(() => $('prodName').focus(), 80);
+      }
+
+      function setImagePreview(url) {
+        const box = $('prodImagePreview');
+        if (!url) {
+          box.style.backgroundImage = 'none';
+          box.innerHTML = '未上传';
+          return;
+        }
+        box.innerHTML = '';
+        box.style.backgroundImage = `url('${url.replace(/'/g, "\\'")}')`;
+      }
+
+      $('addProdBtn').addEventListener('click', () => {
+        if (!state.categories.length) {
+          toast('请先创建一个分类');
+          return;
+        }
+        openProductModal(null);
+      });
+
+      $('prodImagePick').addEventListener('click', () => $('prodImageFile').click());
+
+      $('prodImageFile').addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (file.size > 8 * 1024 * 1024) {
+          toast('图片不能超过 8MB');
+          e.target.value = '';
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          state.currentImageData = String(reader.result || '');
+          setImagePreview(state.currentImageData);
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+      });
+
+      $('prodImageClear').addEventListener('click', () => {
+        state.currentImageData = '__CLEAR__';
+        setImagePreview('');
+      });
+
+      $('prodSaveBtn').addEventListener('click', async () => {
+        const id = $('prodId').value;
+        const name = $('prodName').value.trim();
+        const categoryId = Number($('prodCategory').value);
+        const price = Number($('prodPrice').value);
+        const sort = Number($('prodSort').value) || 0;
+        const descr = $('prodDescr').value.trim();
+        const status = Number($('prodStatus').value);
+
+        if (!name) return toast('请填写商品名称');
+        if (!categoryId) return toast('请选择分类');
+        if (!Number.isFinite(price) || price < 0) return toast('请填写正确的价格');
+
+        const body = { name, categoryId, price, sort, descr, status };
+        if (state.currentImageData === '__CLEAR__') body.image = '';
+        else if (state.currentImageData) body.image = state.currentImageData;
+
+        try {
+          if (id) {
+            await api('/api/admin/products/' + id, { method: 'PUT', body: JSON.stringify(body) });
+            toast('已保存');
+          } else {
+            await api('/api/admin/products', { method: 'POST', body: JSON.stringify(body) });
+            toast('商品已创建');
+          }
+          closeModal('prodModal');
+          await loadProducts();
+          await loadCategories();
+        } catch (err) {
+          toast(err.message);
+        }
+      });
+
+      // ---------------- 订单 ----------------
+      async function loadOrders() {
+        const status = state.logFilterStatus;
+        const qs = status ? '?status=' + encodeURIComponent(status) : '';
+        const r = await api('/api/admin/orders' + qs);
+        state.orders = r.orders;
+        renderOrders();
+      }
+
+      const STATUS_META = {
+        pending: { text: '待处理', cls: 'warn' },
+        done: { text: '已完成', cls: 'ok' },
+        cancelled: { text: '已取消', cls: 'danger' }
+      };
+
+      function renderOrders() {
+        const tb = $('orderTbody');
+        if (!state.orders.length) {
+          tb.innerHTML = '<tr><td colspan="9" class="empty">暂无订单</td></tr>';
+          return;
+        }
+        tb.innerHTML = state.orders
+          .map((o) => {
+            const st = STATUS_META[o.status] || STATUS_META.pending;
+            const isDelivery = o.mode === 'delivery';
+            return `
+              <tr>
+                <td>
+                  <div class="mono" style="font-weight:600">${esc(o.order_no)}</div>
+                  <div class="muted">${shortTime(o.created_at)}</div>
+                </td>
+                <td>${esc(o.name)}</td>
+                <td class="mono">
+                  <a href="tel:${esc(o.phone)}" style="color:#3568c9">${esc(o.phone)}</a>
+                </td>
+                <td>
+                  <span class="tag ${isDelivery ? 'blue' : 'purple'}">${isDelivery ? '配送' : '自取'}</span>
+                </td>
+                <td style="max-width:220px">
+                  ${isDelivery
+                    ? `<div style="white-space:normal;line-height:1.45;font-size:12.5px">${esc(o.address)}</div>`
+                    : '<span class="muted">到店自取</span>'}
+                </td>
+                <td style="font-size:12.5px">${esc(o.expect_time)}</td>
+                <td>
+                  <b style="color:#b85252">${money(o.amount)}</b>
+                  <div class="muted">${o.count} 件 · 参考</div>
+                </td>
+                <td><span class="tag ${st.cls}">${st.text}</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn small" data-view-order="${o.id}">详情</button>
+                    ${o.status === 'pending'
+                      ? `<button class="btn small primary" data-order-status="${o.id}" data-to="done">完成</button>
+                         <button class="btn small danger" data-order-status="${o.id}" data-to="cancelled">取消</button>`
+                      : `<button class="btn small" data-order-status="${o.id}" data-to="pending">恢复待处理</button>`}
+                  </div>
+                </td>
+              </tr>`;
+          })
+          .join('');
+      }
+
+      document.querySelectorAll('.filter-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.filter-tab').forEach((t) => t.classList.remove('active'));
+          tab.classList.add('active');
+          state.logFilterStatus = tab.dataset.status;
+          loadOrders();
+        });
+      });
+
+      $('refreshOrdersBtn').addEventListener('click', loadOrders);
+
+      document.addEventListener('click', async (e) => {
+        const stBtn = e.target.closest('[data-order-status]');
+        if (stBtn) {
+          const id = stBtn.dataset.orderStatus;
+          const to = stBtn.dataset.to;
+          const label = STATUS_META[to] ? STATUS_META[to].text : to;
+          if (to === 'cancelled' && !confirm('确定取消这个订单吗？')) return;
+          try {
+            await api('/api/admin/orders/' + id, { method: 'PUT', body: JSON.stringify({ status: to }) });
+            toast('已标记为' + label);
+            await loadOrders();
+            await loadStats();
+            await loadLogs();
+          } catch (err) {
+            toast(err.message);
+          }
+          return;
+        }
+
+        const viewBtn = e.target.closest('[data-view-order]');
+        if (viewBtn) {
+          const o = state.orders.find((x) => x.id === Number(viewBtn.dataset.viewOrder));
+          if (!o) return;
+          const st = STATUS_META[o.status] || STATUS_META.pending;
+          const isDelivery = o.mode === 'delivery';
+          $('orderDetailBody').innerHTML = `
+            <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+              <span class="mono" style="font-weight:700">${esc(o.order_no)}</span>
+              <span class="tag ${st.cls}">${st.text}</span>
+            </div>
+            <div style="background:#fafbfc;border-radius:12px;padding:14px;margin-bottom:14px">
+              <div style="line-height:2;font-size:13.5px">
+                <div>称呼：<b>${esc(o.name)}</b></div>
+                <div>手机号：<b class="mono">${esc(o.phone)}</b></div>
+                <div>交货方式：<b>${isDelivery ? '配送' : '自取'}</b></div>
+                ${isDelivery ? `<div>收货地址：<b>${esc(o.address)}</b></div>` : ''}
+                <div>${isDelivery ? '期望送达时间' : '预计提取时间'}：<b>${esc(o.expect_time)}</b></div>
+                ${o.remark ? `<div>备注：${esc(o.remark)}</div>` : ''}
+                <div>下单时间：${fmtTime(o.created_at)}</div>
+              </div>
+            </div>
+            <div class="section-title" style="margin-bottom:8px">商品明细</div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              ${(o.items || [])
+                .map(
+                  (it) => `
+                <div style="display:flex;justify-content:space-between;font-size:13.5px">
+                  <span>${esc(it.name)} <span class="muted">×${it.qty}</span></span>
+                  <b>${money(it.price * it.qty)}</b>
+                </div>`
+                )
+                .join('')}
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid #eef0f4">
+              <b>合计</b><b style="color:#b85252;font-size:18px">${money(o.amount)}</b>
+            </div>
+          `;
+          openModal('orderModal');
+        }
+      });
+
+      // ---------------- 访客日志 + 统计 ----------------
+      async function loadStats() {
+        try {
+          state.stats = await api('/api/admin/stats');
+          renderStats();
+        } catch (err) {
+          console.warn(err);
+        }
+      }
+
+      function renderStats() {
+        const s = state.stats;
+        if (!s) return;
+
+        const badge = $('navPendingBadge');
+        if (s.pendingCount > 0) {
+          badge.textContent = s.pendingCount;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+
+        const cards = [
+          { cls: 'accent', label: '💰 累计收益（已完成）', value: money(s.total.amount), sub: `${s.total.count} 笔已完成订单` },
+          { label: '今天收益', value: money(s.today.amount), sub: `${s.today.count} 笔 · 今日访客 ${s.todayVisitors} 人` },
+          { label: '最近 7 天收益', value: money(s.week.amount), sub: `${s.week.count} 笔已完成订单` },
+          { label: '最近 30 天收益', value: money(s.month.amount), sub: `${s.month.count} 笔已完成订单` },
+          { label: '待处理订单', value: String(s.pendingCount), sub: `已取消 ${s.cancelledCount} 笔 · 累计下单 ${s.orderCount} 笔` }
+        ];
+
+        $('statCards').innerHTML = cards
+          .map(
+            (c) => `
+            <div class="stat-card ${c.cls || ''}">
+              <div class="label">${c.label}</div>
+              <div class="value">${c.value}</div>
+              <div class="sub">${c.sub}</div>
+            </div>`
+          )
+          .join('');
+      }
+
+      const EVENT_META = {
+        view: { text: '浏览', cls: 'gray' },
+        checkout_view: { text: '进入结算', cls: 'blue' },
+        order_spawn: { text: '加购', cls: 'purple' },
+        order: { text: '下单', cls: 'ok' }
+      };
+
+      async function loadLogs() {
+        await loadStats();
+        const r = await api('/api/admin/logs?limit=300');
+        state.logs = r.logs;
+        renderLogs();
+      }
+
+      function renderLogs() {
+        const tb = $('logTbody');
+        if (!state.logs.length) {
+          tb.innerHTML = '<tr><td colspan="7" class="empty">还没有访客记录，扫码打开一次前台就会有数据</td></tr>';
+          return;
+        }
+        tb.innerHTML = state.logs
+          .map((l) => {
+            const ev = EVENT_META[l.event] || { text: l.event, cls: 'gray' };
+            const st = l.stat || { views: 0, orders: 0 };
+            return `
+              <tr>
+                <td class="mono" style="font-size:12.5px">${fmtTime(l.created_at)}</td>
+                <td class="mono" style="font-size:12px">${esc((l.visitor_id || '').slice(0, 12))}…</td>
+                <td><span class="tag ${ev.cls}">${ev.text}</span></td>
+                <td style="font-size:12.5px;max-width:220px;white-space:normal;line-height:1.45">
+                  ${esc(l.extra || l.path || '—')}
+                </td>
+                <td class="mono" style="font-size:12px">${esc(l.ip || '—')}</td>
+                <td style="font-size:12px">${esc(deviceOf(l.ua))}</td>
+                <td style="font-size:12px">
+                  浏览 <b>${st.views || 0}</b> 次 · 下单 <b>${st.orders || 0}</b> 次
+                </td>
+              </tr>`;
+          })
+          .join('');
+      }
+
+      $('refreshLogsBtn').addEventListener('click', loadLogs);
+
+      // ---------------- 启动 ----------------
+      let booted = false;
+      async function boot() {
+        try {
+          const r = await api('/api/site-url');
+          state.frontUrl = r.base;
+        } catch (_) {
+          state.frontUrl = location.origin;
+        }
+
+        if (!booted) {
+          booted = true;
+          document.querySelectorAll('.nav-item[data-view]').forEach((n) => {
+            n.addEventListener('click', () => {
+              if (n.dataset.view === 'products') {
+                loadCategories().then(loadProducts).catch((e) => toast(e.message));
+              }
+            });
+          });
+        }
+
+        try {
+          await loadCategories();
+          await loadProducts();
+          await loadStats();
+        } catch (err) {
+          toast(err.message);
+        }
+      }
+
+      // 初始化
+      (async function init() {
+        try {
+          const r = await api('/api/admin/me');
+          if (r.loggedIn) showAdmin();
+          else showLogin();
+        } catch (_) {
+          showLogin();
+        }
+      })();
+    })();
+  </script>
+</body>
+</html>

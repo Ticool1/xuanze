@@ -1,0 +1,33 @@
+# 依赖
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+
+# 数据库（含订单和个人信息，绝不提交）
+data/
+*.db
+*.db-wal
+*.db-shm
+uploads/
+
+# 测试产物
+shots/
+tools/vendor/jsQR.js
+tools/vendor/qrcode-generator.js
+qr.txt
+qr-test.svg
+
+# 环境变量与密钥
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*

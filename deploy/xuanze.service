@@ -1,0 +1,26 @@
+[Unit]
+Description=选择蛋糕店 扫码选购系统
+Documentation=https://github.com/Ticool1/xuanze
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/xuanze
+ExecStart=/usr/bin/node server/app.js
+Restart=always
+RestartSec=3
+StandardOutput=append:/var/log/xuanze/app.log
+StandardError=append:/var/log/xuanze/error.log
+
+# 环境变量从 /opt/xuanze/.env 读取（由 server/app.js 自行加载）
+Environment=NODE_ENV=production
+
+# 限制权限
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/xuanze/data
+
+[Install]
+WantedBy=multi-user.target

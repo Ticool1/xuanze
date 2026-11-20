@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>选择蛋糕店</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>" />
+</head>
+<body>
+  <div class="shop">
+    <!-- 顶部：LOGO + 店铺名 + 电话 -->
+    <header class="shop-header">
+      <div class="shop-brand">
+        <div class="logo-mark" id="logoMark">选</div>
+        <div>
+          <div class="shop-name" id="shopName">选择蛋糕店</div>
+          <div class="shop-sub">
+            <span class="phone-chip">📞 <span id="shopPhone">17310076421</span></span>
+            <span>新鲜现做 · 当日配送</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主体：左侧分类 + 右侧商品 -->
+    <div class="shop-body">
+      <nav class="cat-sidebar" id="catSidebar"></nav>
+      <main class="product-area" id="productArea">
+        <div class="empty">正在加载商品…</div>
+      </main>
+    </div>
+
+    <!-- 底部购物车条：左侧 80% + 右侧 20% 结算 -->
+    <div class="cart-bar">
+      <div class="cart-left" id="cartLeft">
+        <div class="cart-icon">
+          🛒
+          <span class="badge-dot hidden" id="cartBadge">0</span>
+        </div>
+        <div class="cart-meta">
+          <div class="cart-total" id="cartTotal">¥0.00</div>
+          <div class="cart-count" id="cartCount">还没有选择商品</div>
+        </div>
+      </div>
+      <button class="checkout-btn" id="checkoutBtn" disabled>去结算</button>
+    </div>
+  </div>
+
+  <!-- 购物车抽屉 -->
+  <div class="drawer-mask" id="drawerMask"></div>
+  <div class="cart-drawer" id="cartDrawer">
+    <div class="drawer-head">
+      <span>购物车</span>
+      <button class="drawer-clear" id="clearCartBtn">清空</button>
+    </div>
+    <div class="drawer-list" id="drawerList"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // ---------------- 基础状态 ----------------
+      const STORAGE_KEY = 'xz_cart_v1';
+      const state = {
+        menu: { categories: [] },
+        activeCat: null,
+        cart: {}, // { productId: qty }
+        products: new Map(),
+        customer: null,
+        visitorId: ''
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const toastEl = $('toast');
+      let toastTimer = null;
+
+      function toast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+      }
+
+      function money(n) {
+        return '¥' + (Math.round(Number(n || 0) * 100) / 100).toFixed(2);
+      }
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+      }
+
+      async function api(path, opts) {
+        const res = await fetch(path, {
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          ...opts
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || '请求失败');
+        return data;
+      }
+
+      // ---------------- 购物车持久化 ----------------
+      function loadCart() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          state.cart = raw ? JSON.parse(raw) || {} : {};
+        } catch {
+          state.cart = {};
+        }
+      }
+
+      function saveCart() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cart));
+        } catch (_) { /* ignore */ }
+      }
+
+      function cartCount() {
+        return Object.values(state.cart).reduce((a, b) => a + (Number(b) || 0), 0);
+      }
+
+      function cartAmount() {
+        let sum = 0;
+        for (const [pid, qty] of Object.entries(state.cart)) {
+          const p = state.products.get(Number(pid));
+          if (p) sum += p.price * qty;
+        }
+        return Math.round(sum * 100) / 100;
+      }
+
+      function addToCart(pid) {
+        state.cart[pid] = (state.cart[pid] || 0) + 1;
+        saveCart();
+        renderProductArea();
+        renderCartBar();
+        renderDrawer();
+      }
+
+      function setQty(pid, qty) {
+        if (qty <= 0) delete state.cart[pid];
+        else state.cart[pid] = qty;
+        saveCart();
+        renderProductArea();
+        renderCartBar();
+        renderDrawer();
+      }
+
+      // ---------------- 渲染商品 ----------------
+      function thumbStyle(image) {
+        if (!image) {
+          return "background-image:none;display:flex;";
+        }
+        const safe = String(image).replace(/"/g, '&quot;');
+        return `background-image:url('${safe}');`;
+      }
+
+      function renderProductArea() {
+        const area = $('productArea');
+        const cats = state.menu.categories || [];
+        if (!cats.length) {
+          area.innerHTML = '<div class="empty">暂无商品，请稍后再来看看</div>';
+          return;
+        }
+        const cat = cats.find((c) => c.id === state.activeCat) || cats[0];
+        state.activeCat = cat.id;
+
+        if (!cat.products.length) {
+          area.innerHTML = `<div class="cat-title">${esc(cat.name)}</div><div class="empty">这个分类下暂无商品</div>`;
+          return;
+        }
+
+        area.innerHTML = `
+          <div class="cat-title">${esc(cat.name)}</div>
+          <div class="product-grid">
+            ${cat.products
+              .map((p) => {
+                const qty = state.cart[p.id] || 0;
+                return `
+                  <div class="product-card" data-id="${p.id}">
+                    <div class="product-thumb" style="${thumbStyle(p.image)}">
+                      ${p.image ? '' : '暂无图片'}
+                    </div>
+                    <div class="product-info">
+                      <div class="product-name">${esc(p.name)}</div>
+                      ${p.descr ? `<div class="product-desc">${esc(p.descr)}</div>` : ''}
+                      <div class="product-bottom">
+                        <div class="price"><small>¥</small>${Number(p.price).toFixed(2)}</div>
+                        <button class="add-btn ${qty ? 'has-qty' : ''}" data-add="${p.id}" aria-label="加入购物车">
+                          ${qty ? qty : '＋'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>`;
+              })
+              .join('')}
+          </div>
+        `;
+      }
+
+      function renderSidebar() {
+        const bar = $('catSidebar');
+        const cats = state.menu.categories || [];
+        bar.innerHTML = cats
+          .map(
+            (c) => `<div class="cat-item ${c.id === state.activeCat ? 'active' : ''}" data-cat="${c.id}">
+              ${esc(c.name)}${c.products.length ? '' : '<br><span style="font-size:11px;color:#bbb">空</span>'}
+            </div>`
+          )
+          .join('');
+      }
+
+      function renderCartBar() {
+        const count = cartCount();
+        const amount = cartAmount();
+        $('cartTotal').textContent = money(amount);
+        $('cartCount').textContent = count ? `已选 ${count} 件 · 合计 ${money(amount)}` : '还没有选择商品';
+        const badge = $('cartBadge');
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.classList.toggle('hidden', count === 0);
+        $('checkoutBtn').disabled = count === 0;
+      }
+
+      function renderDrawer() {
+        const list = $('drawerList');
+        const entries = Object.entries(state.cart).filter(([pid]) => state.products.get(Number(pid)));
+        if (!entries.length) {
+          list.innerHTML = '<div class="empty">购物车是空的<br>点击商品右下角的 ＋ 加入</div>';
+          return;
+        }
+        list.innerHTML = entries
+          .map(([pid, qty]) => {
+            const p = state.products.get(Number(pid));
+            return `
+              <div class="cart-line">
+                <div class="cart-line-thumb" style="${thumbStyle(p.image)}"></div>
+                <div class="cart-line-main">
+                  <div class="cart-line-name">${esc(p.name)}</div>
+                  <div class="cart-line-price">${money(p.price)}</div>
+                </div>
+                <div class="stepper">
+                  <button class="step-btn" data-minus="${p.id}">−</button>
+                  <span class="step-num">${qty}</span>
+                  <button class="step-btn plus" data-plus="${p.id}">＋</button>
+                </div>
+              </div>`;
+          })
+          .join('');
+      }
+
+      // ---------------- 交互 ----------------
+      function openDrawer() {
+        $('cartDrawer').classList.add('show');
+        $('drawerMask').classList.add('show');
+      }
+
+      function closeDrawer() {
+        $('cartDrawer').classList.remove('show');
+        $('drawerMask').classList.remove('show');
+      }
+
+      $('drawerMask').addEventListener('click', closeDrawer);
+      $('cartLeft').addEventListener('click', () => {
+        if (cartCount() === 0) {
+          toast('购物车还是空的');
+          return;
+        }
+        openDrawer();
+      });
+      $('clearCartBtn').addEventListener('click', () => {
+        if (!cartCount()) return;
+        if (!confirm('确定清空购物车吗？')) return;
+        state.cart = {};
+        saveCart();
+        renderProductArea();
+        renderCartBar();
+        renderDrawer();
+      });
+
+      $('checkoutBtn').addEventListener('click', () => {
+        if (!cartCount()) return;
+        location.href = '/checkout';
+      });
+
+      document.addEventListener('click', (e) => {
+        const catEl = e.target.closest('[data-cat]');
+        if (catEl) {
+          const id = Number(catEl.dataset.cat);
+          if (id && id !== state.activeCat) {
+            state.activeCat = id;
+            renderSidebar();
+            renderProductArea();
+            document.querySelector('.shop-body').scrollIntoView({ block: 'start' });
+          }
+          return;
+        }
+
+        const addEl = e.target.closest('[data-add]');
+        if (addEl) {
+          addToCart(Number(addEl.dataset.add));
+          return;
+        }
+
+        const plusEl = e.target.closest('[data-plus]');
+        if (plusEl) {
+          const pid = Number(plusEl.dataset.plus);
+          setQty(pid, (state.cart[pid] || 0) + 1);
+          return;
+        }
+
+        const minusEl = e.target.closest('[data-minus]');
+        if (minusEl) {
+          const pid = Number(minusEl.dataset.minus);
+          setQty(pid, (state.cart[pid] || 0) - 1);
+          if (!cartCount()) closeDrawer();
+          return;
+        }
+      });
+
+      // ---------------- 初始化 ----------------
+      async function init() {
+        loadCart();
+
+        // 访客标识 + 历史客户信息（用于下次自动填充）
+        try {
+          const v = await api('/api/visitor');
+          state.visitorId = v.visitorId;
+          state.customer = v.customer;
+        } catch (_) { /* ignore */ }
+
+        // 上报一次浏览
+        try {
+          api('/api/visit', {
+            method: 'POST',
+            body: JSON.stringify({ event: 'view', path: '/', extra: '扫码进入选购页' })
+          }).catch(() => {});
+        } catch (_) { /* ignore */ }
+
+        try {
+          const shop = await api('/api/shop');
+          if (shop.shopName) $('shopName').textContent = shop.shopName;
+          if (shop.phone) {
+            $('shopPhone').textContent = shop.phone;
+            $('shopPhone').parentElement.title = '点击拨打电话';
+            $('shopPhone').parentElement.addEventListener('click', () => {
+              location.href = 'tel:' + shop.phone;
+            });
+            $('shopPhone').parentElement.style.cursor = 'pointer';
+          }
+        } catch (_) { /* ignore */ }
+
+        try {
+          const menu = await api('/api/menu');
+          state.menu = menu;
+          for (const cat of menu.categories || []) {
+            for (const p of cat.products) state.products.set(p.id, p);
+          }
+          // 清理已下架商品
+          let changed = false;
+          for (const pid of Object.keys(state.cart)) {
+            if (!state.products.has(Number(pid))) {
+              delete state.cart[pid];
+              changed = true;
+            }
+          }
+          if (changed) saveCart();
+          if (menu.categories.length) state.activeCat = menu.categories[0].id;
+        } catch (err) {
+          $('productArea').innerHTML = `<div class="empty">加载失败：${esc(err.message)}</div>`;
+        }
+
+        renderSidebar();
+        renderProductArea();
+        renderCartBar();
+        renderDrawer();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
